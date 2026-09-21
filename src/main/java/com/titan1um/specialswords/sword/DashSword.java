@@ -1,24 +1,446 @@
 package com.titan1um.specialswords.sword;
+
 import com.titan1um.specialswords.SwordUtils;
-import net.minecraft.enchantment.*;import net.minecraft.entity.*;import net.minecraft.item.*;import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;import net.minecraft.server.*;import net.minecraft.server.network.ServerPlayerEntity;import net.minecraft.server.world.ServerWorld;import net.minecraft.sound.*;import net.minecraft.util.*;import net.minecraft.util.math.*;import net.minecraft.world.WorldEvents;import java.util.*;
-public final class DashSword{
- private static final long FCD=3000,UCD=10000,MCD=30000;private static final Map<UUID,Long>FC=new HashMap<>(),UC=new HashMap<>(),MC=new HashMap<>();private static final Map<UUID,State>UP=new HashMap<>();private static final Map<UUID,Vec3d>FD=new HashMap<>();
- private DashSword(){}
- public static boolean matches(ItemStack s){return SwordUtils.isSpecialSword(s,SwordUtils.DASH_SWORD);}
- public static ActionResult tryActivate(ServerPlayerEntity p,ItemStack s,Hand h){
-  if(!matches(s))return ActionResult.PASS;boolean up=p.getPitch()<=-60;
-  if(up){long r=rem(UC,p.getUuid());if(r>0){SwordUtils.cooldown(p,"Upward Dash",r);return ActionResult.FAIL;}UC.put(p.getUuid(),System.currentTimeMillis()+UCD);UP.put(p.getUuid(),new State());p.setVelocity(new Vec3d(p.getVelocity().x,1.75,p.getVelocity().z));p.velocityDirty=true;p.fallDistance=0;wind(p);s.damage(10,p,h);sound(p);SwordUtils.bar(p,"Upward Dash activated!",Formatting.GREEN);send(p);return ActionResult.SUCCESS;}
-  long r=rem(FC,p.getUuid());if(r>0){SwordUtils.cooldown(p,"Forward Dash",r);return ActionResult.FAIL;}Vec3d d=p.getRotationVector();d=new Vec3d(d.x,0,d.z);if(d.lengthSquared()<.0001)d=new Vec3d(0,0,1);FD.put(p.getUuid(),d.normalize());FC.put(p.getUuid(),System.currentTimeMillis()+FCD);s.damage(5,p,h);sound(p);SwordUtils.bar(p,"Forward Dash activated!",Formatting.GREEN);return ActionResult.SUCCESS;
- }
- public static void tick(MinecraftServer s){for(ServerPlayerEntity p:s.getPlayerManager().getPlayerList())if(holding(p))p.fallDistance=0;tickF(s);tickU(s);}
- public static boolean shouldCancelFallDamage(ServerPlayerEntity p){return holding(p)||UP.containsKey(p.getUuid());}
- private static boolean holding(ServerPlayerEntity p){return matches(p.getMainHandStack());}
- private static void tickF(MinecraftServer s){Iterator<Map.Entry<UUID,Vec3d>>it=FD.entrySet().iterator();while(it.hasNext()){var e=it.next();ServerPlayerEntity p=s.getPlayerManager().getPlayer(e.getKey());if(p==null){it.remove();continue;}p.setVelocity(e.getValue().multiply(1.17));p.velocityDirty=true;send(p);if(p.horizontalCollision||p.isOnGround()&&p.getVelocity().horizontalLength()<.1)it.remove();}}
- private static void tickU(MinecraftServer s){Iterator<Map.Entry<UUID,State>>it=UP.entrySet().iterator();while(it.hasNext()){var e=it.next();ServerPlayerEntity p=s.getPlayerManager().getPlayer(e.getKey());if(p==null){it.remove();continue;}State st=e.getValue();p.fallDistance=0;if(p.getVelocity().y<-.05)st.falling=true;if(st.falling&&p.isOnGround()){if(holding(p)&&rem(MC,p.getUuid())==0){smash(p);MC.put(p.getUuid(),System.currentTimeMillis()+MCD);}it.remove();continue;}if(++st.ticks>600)it.remove();}}
- private static void smash(ServerPlayerEntity a){ServerWorld w=a.getEntityWorld();List<LivingEntity>ts=w.getEntitiesByClass(LivingEntity.class,a.getBoundingBox().expand(5),t->t!=a&&t.isAlive()&&t.squaredDistanceTo(a)<=25);var src=w.getDamageSources().maceSmash(a);ItemStack m=new ItemStack(Items.MACE);var reg=w.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);m.addEnchantment(reg.getOrThrow(Enchantments.DENSITY),5);m.addEnchantment(reg.getOrThrow(Enchantments.BREACH),4);w.syncWorldEvent(a,WorldEvents.SMASH_ATTACK,a.getBlockPos(),750);w.playSound(null,a.getX(),a.getY(),a.getZ(),SoundEvents.ITEM_MACE_SMASH_GROUND_HEAVY,SoundCategory.PLAYERS,1,1);boolean hit=false;for(LivingEntity t:ts){float per=EnchantmentHelper.getSmashDamagePerFallenBlock(w,m,t,src,.5f);if(t.damage(w,src,EnchantmentHelper.getDamage(w,m,t,src,8+14*per)))hit=true;}if(hit&&matches(a.getMainHandStack()))a.getMainHandStack().damage(15,a,EquipmentSlot.MAINHAND);}
- private static void wind(ServerPlayerEntity p){ServerWorld w=p.getEntityWorld();for(LivingEntity t:w.getEntitiesByClass(LivingEntity.class,p.getBoundingBox().expand(8),x->x!=p&&x.isAlive()&&x.squaredDistanceTo(p)<=64)){Vec3d d=t.getEntityPos().subtract(p.getEntityPos());double h=Math.sqrt(d.x*d.x+d.z*d.z);if(h<.001)continue;double k=1.5*(1-Math.min(8,h)/8);t.addVelocity(d.x/h*k,.55,d.z/h*k);t.velocityDirty=true;}w.playSound(null,p.getX(),p.getY(),p.getZ(),SoundEvents.ENTITY_BREEZE_WIND_BURST,SoundCategory.PLAYERS,1,1);}
- private static void sound(ServerPlayerEntity p){p.getEntityWorld().playSound(null,p.getX(),p.getY(),p.getZ(),SoundEvents.ITEM_SPEAR_LUNGE_1,SoundCategory.PLAYERS,1,1);}
- private static void send(ServerPlayerEntity p){p.networkHandler.sendPacket(new EntityVelocityUpdateS2CPacket(p));}
- private static long rem(Map<UUID,Long>m,UUID u){Long x=m.get(u);if(x==null)return 0;long r=x-System.currentTimeMillis();if(r<=0){m.remove(u);return 0;}return r;}
- private static final class State{int ticks;boolean falling;}
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.WorldEvents;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public final class DashSword {
+
+    private static final long FORWARD_COOLDOWN_MS = 3_000L;
+    private static final long UPWARD_COOLDOWN_MS = 10_000L;
+    private static final long MACE_COOLDOWN_MS = 30_000L;
+
+    private static final int FORWARD_DURABILITY = 5;
+    private static final int UPWARD_DURABILITY = 10;
+    private static final int MACE_DURABILITY = 15;
+
+    private static final double FORWARD_SPEED = 1.17D;
+    private static final int FORWARD_TICKS = 6;
+
+    private static final double UPWARD_VELOCITY = 1.75D;
+
+    private static final double WIND_RADIUS = 8.0D;
+    private static final double LANDING_RADIUS = 5.0D;
+
+    private static final Map<UUID, Long> FORWARD_COOLDOWNS = new HashMap<>();
+    private static final Map<UUID, Long> UPWARD_COOLDOWNS = new HashMap<>();
+    private static final Map<UUID, Long> MACE_COOLDOWNS = new HashMap<>();
+
+    private static final Map<UUID, ForwardState> FORWARD_STATES = new HashMap<>();
+    private static final Map<UUID, UpwardState> UPWARD_STATES = new HashMap<>();
+
+    private DashSword() {
+    }
+
+    public static boolean matches(ItemStack stack) {
+        return SwordUtils.isSpecialSword(stack, SwordUtils.DASH_SWORD);
+    }
+
+    public static ActionResult tryActivate(
+            ServerPlayerEntity player,
+            ItemStack stack,
+            Hand hand
+    ) {
+        if (!matches(stack)) {
+            return ActionResult.PASS;
+        }
+
+        if (player.getPitch() <= -60.0F) {
+            return activateUpwardDash(player, stack, hand);
+        }
+
+        return activateForwardDash(player, stack, hand);
+    }
+
+    private static ActionResult activateForwardDash(
+            ServerPlayerEntity player,
+            ItemStack stack,
+            Hand hand
+    ) {
+        long remaining = remaining(FORWARD_COOLDOWNS, player.getUuid());
+
+        if (remaining > 0L) {
+            SwordUtils.cooldown(player, "Forward Dash", remaining);
+            return ActionResult.FAIL;
+        }
+
+        Vec3d direction = player.getRotationVector();
+        direction = new Vec3d(direction.x, 0.0D, direction.z);
+
+        if (direction.lengthSquared() < 0.0001D) {
+            direction = new Vec3d(0.0D, 0.0D, 1.0D);
+        }
+
+        direction = direction.normalize();
+
+        FORWARD_COOLDOWNS.put(
+                player.getUuid(),
+                System.currentTimeMillis() + FORWARD_COOLDOWN_MS
+        );
+
+        FORWARD_STATES.put(
+                player.getUuid(),
+                new ForwardState(direction)
+        );
+
+        stack.damage(FORWARD_DURABILITY, player, hand);
+        playDashSound(player);
+
+        SwordUtils.actionBar(
+                player,
+                "Forward Dash activated!",
+                Formatting.GREEN
+        );
+
+        return ActionResult.SUCCESS;
+    }
+
+    private static ActionResult activateUpwardDash(
+            ServerPlayerEntity player,
+            ItemStack stack,
+            Hand hand
+    ) {
+        long remaining = remaining(UPWARD_COOLDOWNS, player.getUuid());
+
+        if (remaining > 0L) {
+            SwordUtils.cooldown(player, "Upward Dash", remaining);
+            return ActionResult.FAIL;
+        }
+
+        UPWARD_COOLDOWNS.put(
+                player.getUuid(),
+                System.currentTimeMillis() + UPWARD_COOLDOWN_MS
+        );
+
+        UPWARD_STATES.put(
+                player.getUuid(),
+                new UpwardState()
+        );
+
+        player.setVelocity(new Vec3d(
+                player.getVelocity().x,
+                UPWARD_VELOCITY,
+                player.getVelocity().z
+        ));
+        player.velocityDirty = true;
+        player.fallDistance = 0.0F;
+
+        applyWindChargeStyleKnockback(player);
+
+        stack.damage(UPWARD_DURABILITY, player, hand);
+        playDashSound(player);
+
+        SwordUtils.actionBar(
+                player,
+                "Upward Dash activated!",
+                Formatting.GREEN
+        );
+
+        sendVelocity(player);
+
+        return ActionResult.SUCCESS;
+    }
+
+    public static void tick(MinecraftServer server) {
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            if (isHolding(player)) {
+                player.fallDistance = 0.0F;
+            }
+        }
+
+        tickForwardDashes(server);
+        tickUpwardDashes(server);
+    }
+
+    public static boolean shouldCancelFallDamage(ServerPlayerEntity player) {
+        return isHolding(player)
+                || UPWARD_STATES.containsKey(player.getUuid());
+    }
+
+    private static boolean isHolding(ServerPlayerEntity player) {
+        return matches(player.getMainHandStack());
+    }
+
+    private static void tickForwardDashes(MinecraftServer server) {
+        Iterator<Map.Entry<UUID, ForwardState>> iterator =
+                FORWARD_STATES.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, ForwardState> entry = iterator.next();
+            ServerPlayerEntity player =
+                    server.getPlayerManager().getPlayer(entry.getKey());
+
+            if (player == null) {
+                iterator.remove();
+                continue;
+            }
+
+            ForwardState state = entry.getValue();
+
+            if (state.ticksElapsed >= FORWARD_TICKS
+                    || player.horizontalCollision) {
+                iterator.remove();
+                continue;
+            }
+
+            player.setVelocity(state.direction.multiply(FORWARD_SPEED));
+            player.velocityDirty = true;
+            sendVelocity(player);
+
+            state.ticksElapsed++;
+        }
+    }
+
+    private static void tickUpwardDashes(MinecraftServer server) {
+        Iterator<Map.Entry<UUID, UpwardState>> iterator =
+                UPWARD_STATES.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, UpwardState> entry = iterator.next();
+            ServerPlayerEntity player =
+                    server.getPlayerManager().getPlayer(entry.getKey());
+
+            if (player == null) {
+                iterator.remove();
+                continue;
+            }
+
+            UpwardState state = entry.getValue();
+            player.fallDistance = 0.0F;
+
+            if (player.getVelocity().y < -0.05D) {
+                state.startedFalling = true;
+            }
+
+            if (state.startedFalling && player.isOnGround()) {
+                if (isHolding(player)
+                        && remaining(MACE_COOLDOWNS, player.getUuid()) == 0L) {
+                    performMaceSmash(player);
+
+                    MACE_COOLDOWNS.put(
+                            player.getUuid(),
+                            System.currentTimeMillis() + MACE_COOLDOWN_MS
+                    );
+                }
+
+                player.fallDistance = 0.0F;
+                iterator.remove();
+                continue;
+            }
+
+            if (++state.ticksElapsed > 600) {
+                player.fallDistance = 0.0F;
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void performMaceSmash(ServerPlayerEntity attacker) {
+        ServerWorld world = attacker.getEntityWorld();
+
+        List<LivingEntity> targets = world.getEntitiesByClass(
+                LivingEntity.class,
+                attacker.getBoundingBox().expand(LANDING_RADIUS),
+                target -> target != attacker
+                        && target.isAlive()
+                        && target.squaredDistanceTo(attacker)
+                        <= LANDING_RADIUS * LANDING_RADIUS
+        );
+
+        var damageSource = world.getDamageSources().maceSmash(attacker);
+
+        ItemStack mace = new ItemStack(Items.MACE);
+
+        var enchantmentRegistry =
+                world.getRegistryManager().getOrThrow(
+                        net.minecraft.registry.RegistryKeys.ENCHANTMENT
+                );
+
+        mace.addEnchantment(
+                enchantmentRegistry.getOrThrow(Enchantments.DENSITY),
+                5
+        );
+
+        mace.addEnchantment(
+                enchantmentRegistry.getOrThrow(Enchantments.BREACH),
+                4
+        );
+
+        world.syncWorldEvent(
+                attacker,
+                WorldEvents.SMASH_ATTACK,
+                attacker.getBlockPos(),
+                750
+        );
+
+        world.playSound(
+                null,
+                attacker.getX(),
+                attacker.getY(),
+                attacker.getZ(),
+                SoundEvents.ITEM_MACE_SMASH_GROUND_HEAVY,
+                SoundCategory.PLAYERS,
+                1.0F,
+                1.0F
+        );
+
+        boolean hitAnything = false;
+
+        for (LivingEntity target : targets) {
+            float damagePerFallenBlock =
+                    EnchantmentHelper.getSmashDamagePerFallenBlock(
+                            world,
+                            mace,
+                            target,
+                            damageSource,
+                            0.5F
+                    );
+
+            float damage = EnchantmentHelper.getDamage(
+                    world,
+                    mace,
+                    target,
+                    damageSource,
+                    8.0F + 14.0F * damagePerFallenBlock
+            );
+
+            if (target.damage(world, damageSource, damage)) {
+                hitAnything = true;
+            }
+        }
+
+        if (hitAnything && matches(attacker.getMainHandStack())) {
+            attacker.getMainHandStack().damage(
+                    MACE_DURABILITY,
+                    attacker,
+                    EquipmentSlot.MAINHAND
+            );
+        }
+    }
+
+    private static void applyWindChargeStyleKnockback(
+            ServerPlayerEntity player
+    ) {
+        ServerWorld world = player.getEntityWorld();
+
+        for (LivingEntity target : world.getEntitiesByClass(
+                LivingEntity.class,
+                player.getBoundingBox().expand(WIND_RADIUS),
+                entity -> entity != player
+                        && entity.isAlive()
+                        && entity.squaredDistanceTo(player)
+                        <= WIND_RADIUS * WIND_RADIUS
+        )) {
+            Vec3d delta =
+                    target.getEntityPos().subtract(player.getEntityPos());
+
+            double horizontalDistance =
+                    Math.sqrt(delta.x * delta.x + delta.z * delta.z);
+
+            if (horizontalDistance < 0.001D) {
+                continue;
+            }
+
+            double distance =
+                    Math.min(WIND_RADIUS, horizontalDistance);
+
+            double strength =
+                    1.5D * (1.0D - distance / WIND_RADIUS);
+
+            target.addVelocity(
+                    delta.x / horizontalDistance * strength,
+                    0.55D,
+                    delta.z / horizontalDistance * strength
+            );
+
+            target.velocityDirty = true;
+        }
+
+        world.playSound(
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                SoundEvents.ENTITY_BREEZE_WIND_BURST,
+                SoundCategory.PLAYERS,
+                1.0F,
+                1.0F
+        );
+    }
+
+    private static void playDashSound(ServerPlayerEntity player) {
+        player.getEntityWorld().playSound(
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                SoundEvents.ITEM_SPEAR_LUNGE_1,
+                SoundCategory.PLAYERS,
+                1.0F,
+                1.0F
+        );
+    }
+
+    private static void sendVelocity(ServerPlayerEntity player) {
+        player.networkHandler.sendPacket(
+                new EntityVelocityUpdateS2CPacket(player)
+        );
+    }
+
+    private static long remaining(
+            Map<UUID, Long> cooldowns,
+            UUID uuid
+    ) {
+        Long endTime = cooldowns.get(uuid);
+
+        if (endTime == null) {
+            return 0L;
+        }
+
+        long remaining = endTime - System.currentTimeMillis();
+
+        if (remaining <= 0L) {
+            cooldowns.remove(uuid);
+            return 0L;
+        }
+
+        return remaining;
+    }
+
+    private static final class ForwardState {
+
+        private final Vec3d direction;
+        private int ticksElapsed;
+
+        private ForwardState(Vec3d direction) {
+            this.direction = direction;
+        }
+    }
+
+    private static final class UpwardState {
+
+        private int ticksElapsed;
+        private boolean startedFalling;
+    }
 }
