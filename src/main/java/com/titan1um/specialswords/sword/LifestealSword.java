@@ -71,7 +71,7 @@ public final class LifestealSword {
                 attacker.getX(),
                 attacker.getY(),
                 attacker.getZ(),
-                SoundEvents.ENTITY_ENDER_DRAGON_SHOOT,
+                SoundEvents.ENTITY_ENDER_DRAGON_GROWL,
                 SoundCategory.PLAYERS,
                 1.0F,
                 1.0F
