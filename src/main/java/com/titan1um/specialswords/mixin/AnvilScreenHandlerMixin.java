@@ -2,18 +2,17 @@ package com.titan1um.specialswords.mixin;
 
 import com.titan1um.specialswords.SpecialSwordsMod;
 
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.AnvilScreenHandler;
 import net.minecraft.screen.Property;
 import net.minecraft.screen.slot.Slot;
-
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -32,7 +31,6 @@ public abstract class AnvilScreenHandlerMixin {
     private void specialSwords$updateResult(
             CallbackInfo ci
     ) {
-
         AnvilScreenHandler handler =
                 (AnvilScreenHandler) (Object) this;
 
@@ -62,7 +60,8 @@ public abstract class AnvilScreenHandlerMixin {
             return;
         }
 
-        output.setCustomName(
+        output.set(
+                DataComponentTypes.CUSTOM_NAME,
                 Text.literal(name)
                         .formatted(
                                 Formatting.RED,
