@@ -3,42 +3,33 @@ package com.titan1um.specialswords;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
-
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageTypes;
-
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
-
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-
-import net.minecraft.world.SpawnReason;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
 
@@ -57,7 +48,6 @@ public class SpecialSwordsMod {
 
     private static final double LIGHTNING_CHANCE = 0.14;
     private static final double LIFESTEAL_CHANCE = 0.07;
-
     private static final long FORWARD_COOLDOWN_MS = 3_000L;
     private static final long UPWARD_COOLDOWN_MS = 10_000L;
 
@@ -65,7 +55,6 @@ public class SpecialSwordsMod {
     private static final int FORWARD_DASH_TICKS = 6;
 
     private static final double UPWARD_DASH_HEIGHT = 14.0;
-
     private static final double UPWARD_PUSH_RADIUS = 2.0;
     private static final double LANDING_SMASH_RADIUS = 5.0;
 
@@ -97,10 +86,8 @@ public class SpecialSwordsMod {
             new ArrayList<>();
 
     public static void onInitialize() {
-
         UseItemCallback.EVENT.register(
                 (player, world, hand) -> {
-
                     if (world.isClient()) {
                         return ActionResult.PASS;
                     }
@@ -156,12 +143,10 @@ public class SpecialSwordsMod {
             ServerPlayerEntity player,
             ItemStack stack
     ) {
-
         boolean upward =
                 player.getPitch() <= -60.0F;
 
         if (upward) {
-
             long remaining =
                     getRemainingCooldown(
                             upwardCooldowns,
@@ -169,7 +154,6 @@ public class SpecialSwordsMod {
                     );
 
             if (remaining > 0) {
-
                 sendCooldownMessage(
                         player,
                         "specialswords.upward_dash",
@@ -194,7 +178,6 @@ public class SpecialSwordsMod {
                 );
 
         if (remaining > 0) {
-
             sendCooldownMessage(
                     player,
                     "specialswords.forward_dash",
@@ -216,7 +199,6 @@ public class SpecialSwordsMod {
             ServerPlayerEntity player,
             ItemStack stack
     ) {
-
         forwardCooldowns.put(
                 player.getUuid(),
                 System.currentTimeMillis()
@@ -255,7 +237,6 @@ public class SpecialSwordsMod {
             ServerPlayerEntity player,
             ItemStack stack
     ) {
-
         upwardCooldowns.put(
                 player.getUuid(),
                 System.currentTimeMillis()
@@ -267,11 +248,6 @@ public class SpecialSwordsMod {
                 UPWARD_PUSH_RADIUS
         );
 
-        /*
-         * Initial velocity tuned for Minecraft's normal
-         * gravity/air-drag physics to reach approximately
-         * 14 blocks vertically.
-         */
         player.setVelocity(
                 new Vec3d(
                         player.getVelocity().x,
@@ -280,7 +256,7 @@ public class SpecialSwordsMod {
                 )
         );
 
-        player.velocityModified = true;
+        player.velocityDirty = true;
         player.fallDistance = 0.0F;
 
         upwardDashes.put(
@@ -303,7 +279,6 @@ public class SpecialSwordsMod {
     private static void tickServer(
             MinecraftServer server
     ) {
-
         tickForwardDashes(server);
         tickUpwardDashes(server);
         tickLightning(server);
@@ -312,12 +287,10 @@ public class SpecialSwordsMod {
     private static void tickForwardDashes(
             MinecraftServer server
     ) {
-
         Iterator<Map.Entry<UUID, ForwardDashState>> iterator =
                 forwardDashes.entrySet().iterator();
 
         while (iterator.hasNext()) {
-
             Map.Entry<UUID, ForwardDashState> entry =
                     iterator.next();
 
@@ -346,7 +319,7 @@ public class SpecialSwordsMod {
                     state.direction.multiply(velocity)
             );
 
-            player.velocityModified = true;
+            player.velocityDirty = true;
 
             state.ticks++;
         }
@@ -355,12 +328,10 @@ public class SpecialSwordsMod {
     private static void tickUpwardDashes(
             MinecraftServer server
     ) {
-
         Iterator<Map.Entry<UUID, UpwardDashState>> iterator =
                 upwardDashes.entrySet().iterator();
 
         while (iterator.hasNext()) {
-
             Map.Entry<UUID, UpwardDashState> entry =
                     iterator.next();
 
@@ -388,24 +359,12 @@ public class SpecialSwordsMod {
                 state.startedFalling = true;
             }
 
-            /*
-             * Actual landing only.
-             *
-             * We do NOT trigger the smash merely because
-             * the player reaches a certain Y coordinate.
-             */
             if (
                     state.startedFalling
                             && player.isOnGround()
                             && player.getVelocity().y <= 0.1
             ) {
-
-                /*
-                 * Fall damage protection ends only after
-                 * the landing sequence resolves.
-                 */
                 if (isHoldingDashSword(player)) {
-
                     performLandingSmash(
                             player,
                             state
@@ -413,20 +372,13 @@ public class SpecialSwordsMod {
                 }
 
                 player.fallDistance = 0.0F;
-
                 iterator.remove();
 
                 continue;
             }
 
-            /*
-             * Safety timeout for void falls or situations
-             * where the player never reaches the ground.
-             */
             if (state.ticks >= 20 * 30) {
-
                 player.fallDistance = 0.0F;
-
                 iterator.remove();
             }
         }
@@ -436,19 +388,13 @@ public class SpecialSwordsMod {
             ServerPlayerEntity attacker,
             UpwardDashState state
     ) {
-
         ServerWorld world =
-                attacker.getServerWorld();
+                attacker.getEntityWorld();
 
         DamageSource damageSource =
                 world.getDamageSources()
                         .maceSmash(attacker);
 
-        /*
-         * A temporary vanilla Mace stack is used only as the
-         * calculation source so Minecraft's own Density and
-         * Breach enchantment systems calculate the smash.
-         */
         ItemStack mace =
                 new ItemStack(Items.MACE);
 
@@ -495,15 +441,9 @@ public class SpecialSwordsMod {
                                                 attacker
                                         )
                                         <= LANDING_SMASH_RADIUS
-                                                * LANDING_SMASH_RADIUS
+                                        * LANDING_SMASH_RADIUS
                 );
 
-        /*
-         * Vanilla mace smash dust-pillar event.
-         *
-         * The event itself is the vanilla event used by the
-         * MaceItem to spawn the smash dust pillar.
-         */
         BlockPos landingPos =
                 attacker.getBlockPos();
 
@@ -514,9 +454,6 @@ public class SpecialSwordsMod {
                 750
         );
 
-        /*
-         * Vanilla heavy mace landing sound.
-         */
         world.playSound(
                 null,
                 attacker.getX(),
@@ -528,12 +465,7 @@ public class SpecialSwordsMod {
                 1.0F
         );
 
-        /*
-         * One smash, but every living entity in the
-         * 5-block radius receives the smash damage.
-         */
         for (LivingEntity target : targets) {
-
             float damagePerBlock =
                     EnchantmentHelper
                             .getSmashDamagePerFallenBlock(
@@ -544,25 +476,11 @@ public class SpecialSwordsMod {
                                     0.5F
                             );
 
-            /*
-             * Vanilla mace smash structure:
-             *
-             * base mace damage: 5
-             * smash bonus: 3
-             * fallen-block component:
-             *   fall distance × modified per-block value
-             *
-             * Density V modifies the per-block component.
-             */
             float smashDamage =
                     8.0F
                             + (float) fallDistance
                             * damagePerBlock;
 
-            /*
-             * Apply the enchantment damage pipeline as well,
-             * allowing Breach IV to affect armor effectiveness.
-             */
             smashDamage =
                     EnchantmentHelper.getDamage(
                             world,
@@ -589,10 +507,9 @@ public class SpecialSwordsMod {
             Entity attacker,
             LivingEntity target
     ) {
-
         Vec3d difference =
-                target.getPos()
-                        .subtract(attacker.getPos());
+                target.getEntityPos()
+                        .subtract(attacker.getEntityPos());
 
         double horizontal =
                 Math.sqrt(
@@ -634,16 +551,15 @@ public class SpecialSwordsMod {
                         * knockback
         );
 
-        target.velocityModified = true;
+        target.velocityDirty = true;
     }
 
     private static void pushNearbyEntities(
             ServerPlayerEntity player,
             double radius
     ) {
-
         ServerWorld world =
-                player.getServerWorld();
+                player.getEntityWorld();
 
         Box area =
                 player.getBoundingBox()
@@ -662,17 +578,10 @@ public class SpecialSwordsMod {
                                         <= radius * radius
                 );
 
-        /*
-         * This radius is ONLY the upward-launch push.
-         *
-         * It is deliberately 2 blocks and has nothing
-         * to do with the 5-block landing smash radius.
-         */
         for (LivingEntity target : entities) {
-
             Vec3d difference =
-                    target.getPos()
-                            .subtract(player.getPos());
+                    target.getEntityPos()
+                            .subtract(player.getEntityPos());
 
             double horizontal =
                     Math.sqrt(
@@ -704,7 +613,7 @@ public class SpecialSwordsMod {
                             * strength
             );
 
-            target.velocityModified = true;
+            target.velocityDirty = true;
         }
     }
 
@@ -714,12 +623,6 @@ public class SpecialSwordsMod {
             float damageTaken,
             boolean blocked
     ) {
-
-        /*
-         * "Successful hit" means the attack actually damaged
-         * the target. A fully blocked/shielded attack does not
-         * proc Lightning or Lifesteal.
-         */
         if (blocked || damageTaken <= 0.0F) {
             return;
         }
@@ -744,7 +647,6 @@ public class SpecialSwordsMod {
                 getName(weapon);
 
         if (LIGHTNING_SWORD.equals(name)) {
-
             if (Math.random() >= LIGHTNING_CHANCE) {
                 return;
             }
@@ -759,7 +661,6 @@ public class SpecialSwordsMod {
         }
 
         if (LIFESTEAL_SWORD.equals(name)) {
-
             if (Math.random() >= LIFESTEAL_CHANCE) {
                 return;
             }
@@ -776,11 +677,10 @@ public class SpecialSwordsMod {
             LivingEntity target,
             ItemStack weapon
     ) {
-
         lightningTasks.add(
                 new LightningTask(
                         target.getUuid(),
-                        target.getWorld().getRegistryKey(),
+                        target.getEntityWorld().getRegistryKey(),
                         attacker.getUuid(),
                         0,
                         0
@@ -802,12 +702,10 @@ public class SpecialSwordsMod {
     private static void tickLightning(
             MinecraftServer server
     ) {
-
         Iterator<LightningTask> iterator =
                 lightningTasks.iterator();
 
         while (iterator.hasNext()) {
-
             LightningTask task =
                     iterator.next();
 
@@ -849,7 +747,6 @@ public class SpecialSwordsMod {
                     );
 
             if (lightning != null) {
-
                 lightning.refreshPositionAfterTeleport(
                         target.getX(),
                         target.getY(),
@@ -862,9 +759,7 @@ public class SpecialSwordsMod {
             task.strikes++;
 
             if (task.strikes >= LIGHTNING_STRIKES) {
-
                 iterator.remove();
-
                 continue;
             }
 
@@ -877,7 +772,6 @@ public class SpecialSwordsMod {
             ServerPlayerEntity player,
             ItemStack weapon
     ) {
-
         StatusEffectInstance current =
                 player.getStatusEffect(
                         StatusEffects.HEALTH_BOOST
@@ -924,7 +818,6 @@ public class SpecialSwordsMod {
             LivingEntity entity,
             DamageSource source
     ) {
-
         if (!source.isOf(DamageTypes.FALL)) {
             return true;
         }
@@ -933,18 +826,10 @@ public class SpecialSwordsMod {
             return true;
         }
 
-        /*
-         * Holding Dash Sword normally gives full fall protection.
-         */
         if (isHoldingDashSword(player)) {
             return false;
         }
 
-        /*
-         * Once an upward dash has started, fall protection
-         * remains active even if the player switches away
-         * from the sword.
-         */
         if (upwardDashes.containsKey(player.getUuid())) {
             return false;
         }
@@ -955,7 +840,6 @@ public class SpecialSwordsMod {
     private static boolean isHoldingDashSword(
             ServerPlayerEntity player
     ) {
-
         return isSpecialSword(
                 player.getMainHandStack(),
                 DASH_SWORD
@@ -970,7 +854,6 @@ public class SpecialSwordsMod {
             String key,
             Object... args
     ) {
-
         player.sendMessage(
                 Text.translatable(
                         key,
@@ -987,7 +870,6 @@ public class SpecialSwordsMod {
             String abilityKey,
             long remaining
     ) {
-
         long seconds =
                 (remaining + 999L) / 1000L;
 
@@ -1011,7 +893,6 @@ public class SpecialSwordsMod {
             Map<UUID, Long> cooldowns,
             UUID uuid
     ) {
-
         Long end =
                 cooldowns.get(uuid);
 
@@ -1023,9 +904,7 @@ public class SpecialSwordsMod {
                 end - System.currentTimeMillis();
 
         if (remaining <= 0) {
-
             cooldowns.remove(uuid);
-
             return 0;
         }
 
@@ -1037,7 +916,6 @@ public class SpecialSwordsMod {
             int amount,
             ServerPlayerEntity player
     ) {
-
         stack.damage(
                 amount,
                 player,
@@ -1048,14 +926,10 @@ public class SpecialSwordsMod {
     public static int getSpecialSwordRenameCost(
             String name
     ) {
-
         return switch (name) {
-
             case LIGHTNING_SWORD -> 30;
-
             case LIFESTEAL_SWORD,
                  DASH_SWORD -> 35;
-
             default -> 0;
         };
     }
@@ -1064,7 +938,6 @@ public class SpecialSwordsMod {
             ItemStack stack,
             String name
     ) {
-
         return isNetheriteSword(stack)
                 && name.equals(
                 getName(stack)
@@ -1074,7 +947,6 @@ public class SpecialSwordsMod {
     private static boolean isNetheriteSword(
             ItemStack stack
     ) {
-
         return stack.isOf(
                 Items.NETHERITE_SWORD
         );
@@ -1083,7 +955,6 @@ public class SpecialSwordsMod {
     private static String getName(
             ItemStack stack
     ) {
-
         if (stack.getCustomName() == null) {
             return "";
         }
@@ -1093,7 +964,6 @@ public class SpecialSwordsMod {
     }
 
     private static class ForwardDashState {
-
         private final Vec3d direction;
         private int ticks;
 
@@ -1101,20 +971,17 @@ public class SpecialSwordsMod {
                 Vec3d direction,
                 int ticks
         ) {
-
             this.direction = direction;
             this.ticks = ticks;
         }
     }
 
     private static class UpwardDashState {
-
         private int ticks;
         private boolean startedFalling;
         private double maximumFallDistance;
 
         private UpwardDashState() {
-
             this.ticks = 0;
             this.startedFalling = false;
             this.maximumFallDistance = 14.0;
@@ -1122,11 +989,9 @@ public class SpecialSwordsMod {
     }
 
     private static class LightningTask {
-
         private final UUID target;
         private final net.minecraft.registry.RegistryKey<World> worldKey;
         private final UUID attacker;
-
         private int strikes;
         private int ticksUntilStrike;
 
@@ -1137,7 +1002,6 @@ public class SpecialSwordsMod {
                 int strikes,
                 int ticksUntilStrike
         ) {
-
             this.target = target;
             this.worldKey = worldKey;
             this.attacker = attacker;
