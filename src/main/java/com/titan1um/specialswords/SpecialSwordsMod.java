@@ -1,5 +1,6 @@
 package com.titan1um.specialswords;
 
+import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class SpecialSwordsMod {
+public class SpecialSwordsMod implements ModInitializer {
 
     private static final String LIGHTNING_SWORD = "Lightning Sword";
     private static final String LIFESTEAL_SWORD = "Lifesteal Sword";
@@ -48,6 +49,7 @@ public class SpecialSwordsMod {
 
     private static final double LIGHTNING_CHANCE = 0.14;
     private static final double LIFESTEAL_CHANCE = 0.07;
+
     private static final long FORWARD_COOLDOWN_MS = 3_000L;
     private static final long UPWARD_COOLDOWN_MS = 10_000L;
 
@@ -85,7 +87,8 @@ public class SpecialSwordsMod {
     private static final List<LightningTask> lightningTasks =
             new ArrayList<>();
 
-    public static void onInitialize() {
+    @Override
+    public void onInitialize() {
         UseItemCallback.EVENT.register(
                 (player, world, hand) -> {
                     if (world.isClient()) {
