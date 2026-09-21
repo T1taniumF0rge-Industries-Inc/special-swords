@@ -63,7 +63,8 @@ public final class SwordUtils {
 
         Style plain = Style.EMPTY
                 .withColor(color)
-                .withItalic(false);
+                .withItalic(false)
+                .withObfuscated(false);
 
         Style obfuscated = plain.withObfuscated(true);
 
