@@ -1,11 +1,1 @@
-{
-  "required": true,
-  "package": "com.titan1um.specialswords.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "AnvilScreenHandlerMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
-}
+{"required":true,"package":"com.titan1um.specialswords.mixin","compatibilityLevel":"JAVA_21","mixins":["AnvilScreenHandlerMixin","CraftingScreenHandlerMixin"],"injectors":{"defaultRequire":1}}
