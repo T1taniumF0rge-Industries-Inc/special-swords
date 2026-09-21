@@ -3,8 +3,7 @@
   "package": "com.titan1um.specialswords.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AnvilScreenHandlerMixin",
-    "CraftingScreenHandlerMixin"
+    "AnvilScreenHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
