@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class LifestealSword {
 
-    private static final double PROC_CHANCE = 0.25D;
+    private static final double PROC_CHANCE = 0.10D;
     private static final int HEALTH_BOOST_DURATION = 20 * 60;
     private static final int DURABILITY_COST = 10;
 
