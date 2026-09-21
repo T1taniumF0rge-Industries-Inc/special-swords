@@ -3,6 +3,7 @@ package com.titan1um.specialswords.sword;
 import com.titan1um.specialswords.SwordUtils;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
@@ -344,8 +345,8 @@ public final class DashSword {
     ) {
         ServerWorld world = player.getEntityWorld();
 
-        for (LivingEntity target : world.getEntitiesByClass(
-                LivingEntity.class,
+        for (Entity target : world.getOtherEntities(
+                player,
                 player.getBoundingBox().expand(WIND_RADIUS),
                 entity -> entity != player
                         && entity.isAlive()
