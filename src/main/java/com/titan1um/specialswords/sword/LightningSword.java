@@ -1,13 +1,136 @@
 package com.titan1um.specialswords.sword;
+
 import com.titan1um.specialswords.SwordUtils;
-import net.minecraft.entity.*;import net.minecraft.entity.mob.HostileEntity;import net.minecraft.entity.player.PlayerEntity;import net.minecraft.item.ItemStack;import net.minecraft.server.*;import net.minecraft.server.network.ServerPlayerEntity;import net.minecraft.server.world.ServerWorld;import net.minecraft.registry.RegistryKey;import net.minecraft.util.Formatting;import net.minecraft.world.World;import java.util.*;import java.util.concurrent.ThreadLocalRandom;
-public final class LightningSword{
- private static final double CHANCE=.10;private static final int STRIKES=10,INTERVAL=4;private static final List<Task>TASKS=new ArrayList<>();private LightningSword(){}
- public static boolean matches(ItemStack s){return SwordUtils.isSpecialSword(s,SwordUtils.LIGHTNING_SWORD);}
- public static void handleHit(ServerPlayerEntity p,LivingEntity t,ItemStack w){
-  if(!(t instanceof PlayerEntity)&&!(t instanceof HostileEntity))return;if(ThreadLocalRandom.current().nextDouble()>=CHANCE)return;
-  TASKS.add(new Task(t.getUuid(),t.getEntityWorld().getRegistryKey()));w.damage(10,p,net.minecraft.entity.EquipmentSlot.MAINHAND);SwordUtils.bar(p,"Lightning Sword activated!",Formatting.GREEN);
- }
- public static void tick(MinecraftServer s){Iterator<Task>it=TASKS.iterator();while(it.hasNext()){Task q=it.next();if(q.delay-->0)continue;ServerWorld w=s.getWorld(q.world);if(w==null){it.remove();continue;}Entity e=w.getEntity(q.target);if(!(e instanceof LivingEntity t)||!t.isAlive()||(!(t instanceof PlayerEntity)&&!(t instanceof HostileEntity))){it.remove();continue;}LightningEntity b=EntityType.LIGHTNING_BOLT.create(w,SpawnReason.TRIGGERED);if(b!=null){b.refreshPositionAfterTeleport(t.getX(),t.getY(),t.getZ());w.spawnEntity(b);}if(++q.strikes>=STRIKES)it.remove();else q.delay=INTERVAL;}}
- private static final class Task{final UUID target;final RegistryKey<World>world;int strikes,delay;Task(UUID t,RegistryKey<World>w){target=t;world=w;delay=0;}}
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LightningEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Formatting;
+import net.minecraft.world.World;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+public final class LightningSword {
+
+    private static final double PROC_CHANCE = 0.10D;
+    private static final int STRIKES = 10;
+    private static final int STRIKE_INTERVAL_TICKS = 4;
+    private static final int DURABILITY_COST = 10;
+
+    private static final List<LightningTask> TASKS = new ArrayList<>();
+
+    private LightningSword() {
+    }
+
+    public static boolean matches(ItemStack stack) {
+        return SwordUtils.isSpecialSword(stack, SwordUtils.LIGHTNING_SWORD);
+    }
+
+    public static void handleHit(
+            ServerPlayerEntity attacker,
+            LivingEntity target,
+            ItemStack weapon
+    ) {
+        if (!(target instanceof PlayerEntity) && !(target instanceof HostileEntity)) {
+            return;
+        }
+
+        if (ThreadLocalRandom.current().nextDouble() >= PROC_CHANCE) {
+            return;
+        }
+
+        TASKS.add(new LightningTask(
+                target.getUuid(),
+                target.getEntityWorld().getRegistryKey()
+        ));
+
+        weapon.damage(
+                DURABILITY_COST,
+                attacker,
+                net.minecraft.entity.EquipmentSlot.MAINHAND
+        );
+
+        SwordUtils.actionBar(
+                attacker,
+                "Lightning Sword activated!",
+                Formatting.GREEN
+        );
+    }
+
+    public static void tick(MinecraftServer server) {
+        Iterator<LightningTask> iterator = TASKS.iterator();
+
+        while (iterator.hasNext()) {
+            LightningTask task = iterator.next();
+
+            if (task.delayTicks > 0) {
+                task.delayTicks--;
+                continue;
+            }
+
+            ServerWorld world = server.getWorld(task.worldKey);
+
+            if (world == null) {
+                iterator.remove();
+                continue;
+            }
+
+            Entity entity = world.getEntity(task.target);
+
+            if (!(entity instanceof LivingEntity target)
+                    || !target.isAlive()
+                    || (!(target instanceof PlayerEntity)
+                    && !(target instanceof HostileEntity))) {
+                iterator.remove();
+                continue;
+            }
+
+            LightningEntity lightning = EntityType.LIGHTNING_BOLT.create(
+                    world,
+                    SpawnReason.TRIGGERED
+            );
+
+            if (lightning != null) {
+                lightning.refreshPositionAfterTeleport(
+                        target.getX(),
+                        target.getY(),
+                        target.getZ()
+                );
+                world.spawnEntity(lightning);
+            }
+
+            task.strikes++;
+
+            if (task.strikes >= STRIKES) {
+                iterator.remove();
+            } else {
+                task.delayTicks = STRIKE_INTERVAL_TICKS;
+            }
+        }
+    }
+
+    private static final class LightningTask {
+
+        private final UUID target;
+        private final RegistryKey<World> worldKey;
+        private int strikes;
+        private int delayTicks;
+
+        private LightningTask(UUID target, RegistryKey<World> worldKey) {
+            this.target = target;
+            this.worldKey = worldKey;
+        }
+    }
 }
