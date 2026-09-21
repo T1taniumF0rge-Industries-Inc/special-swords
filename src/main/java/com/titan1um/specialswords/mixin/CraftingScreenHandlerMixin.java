@@ -1,11 +1,93 @@
 package com.titan1um.specialswords.mixin;
-import net.minecraft.entity.player.PlayerEntity;import net.minecraft.inventory.*;import net.minecraft.item.*;import net.minecraft.recipe.*;import net.minecraft.screen.*;import net.minecraft.server.world.ServerWorld;import org.spongepowered.asm.mixin.*;import org.spongepowered.asm.mixin.injection.*;
-@Mixin(CraftingScreenHandler.class)public abstract class CraftingScreenHandlerMixin{
- @Inject(method="updateResult",at=@At("TAIL"))private static void filter(ScreenHandler h,ServerWorld w,PlayerEntity p,RecipeInputInventory i,CraftingResultInventory r,RecipeEntry<CraftingRecipe> q,org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci){
-  ItemStack o=r.getStack(0);if(o.isEmpty())return;if(o.isOf(Items.MACE)&&!mace(i)){r.setStack(0,ItemStack.EMPTY);return;}if(spear(o)&&!diamond(i))r.setStack(0,ItemStack.EMPTY);
- }
- static boolean spear(ItemStack s){return s.isOf(Items.WOODEN_SPEAR)||s.isOf(Items.STONE_SPEAR)||s.isOf(Items.COPPER_SPEAR)||s.isOf(Items.IRON_SPEAR)||s.isOf(Items.GOLDEN_SPEAR)||s.isOf(Items.DIAMOND_SPEAR)||s.isOf(Items.NETHERITE_SPEAR);}
- static boolean mace(RecipeInputInventory i){return a(i,0,Items.WIND_CHARGE)&&a(i,1,Items.NETHERITE_INGOT)&&a(i,2,Items.WIND_CHARGE)&&a(i,3,Items.DIAMOND_BLOCK)&&a(i,4,Items.HEAVY_CORE)&&a(i,5,Items.DIAMOND_BLOCK)&&a(i,6,Items.ENCHANTED_GOLDEN_APPLE)&&a(i,7,Items.BREEZE_ROD)&&a(i,8,Items.ENCHANTED_GOLDEN_APPLE);}
- static boolean diamond(RecipeInputInventory i){return a(i,0,Items.NETHERITE_INGOT)&&a(i,1,Items.DIAMOND_BLOCK)&&a(i,2,Items.ENCHANTED_GOLDEN_APPLE)&&a(i,3,Items.DIAMOND_BLOCK)&&a(i,4,Items.STICK)&&i.getStack(5).isEmpty()&&a(i,6,Items.ENCHANTED_GOLDEN_APPLE)&&i.getStack(7).isEmpty()&&a(i,8,Items.STICK);}
- static boolean a(RecipeInputInventory i,int n,Item x){return i.getStack(n).isOf(x)&&i.getStack(n).getCount()==1;}
+
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.CraftingResultInventory;
+import net.minecraft.inventory.RecipeInputInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.recipe.CraftingRecipe;
+import net.minecraft.recipe.RecipeEntry;
+import net.minecraft.screen.CraftingScreenHandler;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.world.ServerWorld;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(CraftingScreenHandler.class)
+public abstract class CraftingScreenHandlerMixin {
+
+    @Inject(
+            method = "updateResult",
+            at = @At("TAIL")
+    )
+    private static void specialSwords$filterRecipe(
+            ScreenHandler handler,
+            ServerWorld world,
+            PlayerEntity player,
+            RecipeInputInventory inventory,
+            CraftingResultInventory result,
+            RecipeEntry<CraftingRecipe> recipe,
+            CallbackInfo ci
+    ) {
+        ItemStack output = result.getStack(0);
+
+        if (output.isEmpty()) {
+            return;
+        }
+
+        if (output.isOf(Items.MACE) && !matchesMaceRecipe(inventory)) {
+            result.setStack(0, ItemStack.EMPTY);
+            return;
+        }
+
+        if (isSpear(output) && !matchesDiamondSpearRecipe(inventory)) {
+            result.setStack(0, ItemStack.EMPTY);
+        }
+    }
+
+    private static boolean isSpear(ItemStack stack) {
+        return stack.isOf(Items.WOODEN_SPEAR)
+                || stack.isOf(Items.STONE_SPEAR)
+                || stack.isOf(Items.COPPER_SPEAR)
+                || stack.isOf(Items.IRON_SPEAR)
+                || stack.isOf(Items.GOLDEN_SPEAR)
+                || stack.isOf(Items.DIAMOND_SPEAR)
+                || stack.isOf(Items.NETHERITE_SPEAR);
+    }
+
+    private static boolean matchesMaceRecipe(RecipeInputInventory inventory) {
+        return item(inventory, 0, Items.WIND_CHARGE)
+                && item(inventory, 1, Items.NETHERITE_INGOT)
+                && item(inventory, 2, Items.WIND_CHARGE)
+                && item(inventory, 3, Items.DIAMOND_BLOCK)
+                && item(inventory, 4, Items.HEAVY_CORE)
+                && item(inventory, 5, Items.DIAMOND_BLOCK)
+                && item(inventory, 6, Items.ENCHANTED_GOLDEN_APPLE)
+                && item(inventory, 7, Items.BREEZE_ROD)
+                && item(inventory, 8, Items.ENCHANTED_GOLDEN_APPLE);
+    }
+
+    private static boolean matchesDiamondSpearRecipe(RecipeInputInventory inventory) {
+        return item(inventory, 0, Items.NETHERITE_INGOT)
+                && item(inventory, 1, Items.DIAMOND_BLOCK)
+                && item(inventory, 2, Items.ENCHANTED_GOLDEN_APPLE)
+                && item(inventory, 3, Items.DIAMOND_BLOCK)
+                && item(inventory, 4, Items.STICK)
+                && inventory.getStack(5).isEmpty()
+                && item(inventory, 6, Items.ENCHANTED_GOLDEN_APPLE)
+                && inventory.getStack(7).isEmpty()
+                && item(inventory, 8, Items.STICK);
+    }
+
+    private static boolean item(
+            RecipeInputInventory inventory,
+            int slot,
+            Item item
+    ) {
+        ItemStack stack = inventory.getStack(slot);
+        return stack.isOf(item) && stack.getCount() == 1;
+    }
 }
