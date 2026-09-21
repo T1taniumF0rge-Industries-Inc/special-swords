@@ -116,7 +116,7 @@ public final class LightningSword {
             if (task.strikes >= STRIKES) {
                 iterator.remove();
             } else {
-                task.delayTicks = STRIKE_INTERVAL_TICKS;
+                task.delayTicks = STRIKE_INTERVAL_TICKS - 1;
             }
         }
     }
