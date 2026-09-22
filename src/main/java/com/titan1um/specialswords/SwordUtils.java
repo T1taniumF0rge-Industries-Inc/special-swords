@@ -77,8 +77,24 @@ public final class SwordUtils {
         return text;
     }
 
+    public static boolean rollPercent(net.minecraft.server.world.ServerWorld world, int percent) {
+        if (percent <= 0) {
+            return false;
+        }
+
+        if (percent >= 100) {
+            return true;
+        }
+
+        return world.getRandom().nextInt(100) < percent;
+    }
+
     public static void actionBar(ServerPlayerEntity player, String message, Formatting color) {
         player.sendMessage(Text.literal(message).formatted(color), true);
+    }
+
+    public static void actionBar(ServerPlayerEntity player, Text message, Formatting color) {
+        player.sendMessage(message.copy().formatted(color), true);
     }
 
     public static void cooldown(ServerPlayerEntity player, String ability, long remainingMillis) {
