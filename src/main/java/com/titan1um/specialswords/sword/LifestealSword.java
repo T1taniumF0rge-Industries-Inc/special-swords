@@ -50,7 +50,10 @@ public final class LifestealSword {
         if (cooldown > 0L) {
             SwordUtils.actionBar(
                     attacker,
-                    Text.translatable("specialswords.lifesteal.cooldown", cooldownSeconds(cooldown)),
+                    Text.translatable(
+                            "specialswords.lifesteal.cooldown",
+                            cooldownSeconds(cooldown)
+                    ),
                     Formatting.RED
             );
             return;
@@ -114,7 +117,8 @@ public final class LifestealSword {
     }
 
     public static void tick(MinecraftServer server) {
-        Iterator<Map.Entry<UUID, Integer>> iterator = LIFESTEAL_LEVELS.entrySet().iterator();
+        Iterator<Map.Entry<UUID, Integer>> iterator =
+                LIFESTEAL_LEVELS.entrySet().iterator();
 
         while (iterator.hasNext()) {
             Map.Entry<UUID, Integer> entry = iterator.next();
@@ -144,7 +148,6 @@ public final class LifestealSword {
             if (level >= MAX_HEALTH_BOOST_AMPLIFIER
                     && MAX_COOLDOWNS.containsKey(uuid)
                     && remaining(MAX_COOLDOWNS, uuid) == 0L) {
-                LIFESTEAL_LEVELS.remove(uuid);
                 iterator.remove();
             }
         }
@@ -203,6 +206,15 @@ public final class LifestealSword {
             if (boost != null && boost.getAmplifier() <= MAX_HEALTH_BOOST_AMPLIFIER) {
                 player.removeStatusEffect(StatusEffects.HEALTH_BOOST);
             }
+        }
+
+        StatusEffectInstance currentRegen =
+                player.getStatusEffect(StatusEffects.REGENERATION);
+
+        if (currentRegen != null
+                && currentRegen.getAmplifier() == 1
+                && currentRegen.getDuration() <= 40) {
+            player.removeStatusEffect(StatusEffects.REGENERATION);
         }
 
         MAX_COOLDOWNS.remove(uuid);
