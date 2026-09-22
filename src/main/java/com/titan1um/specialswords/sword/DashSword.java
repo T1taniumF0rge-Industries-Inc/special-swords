@@ -16,7 +16,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -24,9 +23,11 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.WorldEvents;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class DashSword {
@@ -54,6 +55,7 @@ public final class DashSword {
     private static final Map<UUID, ForwardState> FORWARD_STATES = new HashMap<>();
     private static final Map<UUID, UpwardState> UPWARD_STATES = new HashMap<>();
     private static final Map<UUID, StatusEffectInstance> SAVED_SPEED = new HashMap<>();
+    private static final Set<UUID> SWORD_APPLIED_SPEED = new HashSet<>();
 
     private DashSword() {
     }
@@ -65,7 +67,7 @@ public final class DashSword {
     public static ActionResult tryActivate(
             ServerPlayerEntity player,
             ItemStack stack,
-            Hand hand
+            net.minecraft.util.Hand hand
     ) {
         if (!matches(stack)) {
             return ActionResult.PASS;
@@ -81,7 +83,7 @@ public final class DashSword {
     private static ActionResult activateForwardDash(
             ServerPlayerEntity player,
             ItemStack stack,
-            Hand hand
+            net.minecraft.util.Hand hand
     ) {
         long remaining = remaining(FORWARD_COOLDOWNS, player.getUuid());
 
@@ -118,7 +120,10 @@ public final class DashSword {
 
         SwordUtils.actionBar(
                 player,
-                Text.translatable("specialswords.forward_dash.success"),
+                SwordUtils.localizedMessage(
+                        player,
+                        "specialswords.forward_dash.success"
+                ),
                 Formatting.GREEN
         );
 
@@ -128,7 +133,7 @@ public final class DashSword {
     private static ActionResult activateUpwardDash(
             ServerPlayerEntity player,
             ItemStack stack,
-            Hand hand
+            net.minecraft.util.Hand hand
     ) {
         long remaining = remaining(UPWARD_COOLDOWNS, player.getUuid());
 
@@ -166,7 +171,10 @@ public final class DashSword {
 
         SwordUtils.actionBar(
                 player,
-                Text.translatable("specialswords.upward_dash.success"),
+                SwordUtils.localizedMessage(
+                        player,
+                        "specialswords.upward_dash.success"
+                ),
                 Formatting.GREEN
         );
 
@@ -213,26 +221,20 @@ public final class DashSword {
                             false,
                             false
                     ));
+                    SWORD_APPLIED_SPEED.add(uuid);
                 }
 
                 continue;
             }
 
             StatusEffectInstance saved = SAVED_SPEED.remove(uuid);
+            boolean swordApplied = SWORD_APPLIED_SPEED.remove(uuid);
 
-            if (saved == null) {
-                continue;
-            }
-
-            StatusEffectInstance current = player.getStatusEffect(StatusEffects.SPEED);
-
-            if (current != null
-                    && current.getAmplifier() == 0
-                    && current.getDuration() <= 40) {
+            if (swordApplied) {
                 player.removeStatusEffect(StatusEffects.SPEED);
             }
 
-            if (saved.getDuration() > 0) {
+            if (saved != null && saved.getDuration() > 0) {
                 player.addStatusEffect(saved);
             }
         }
@@ -348,7 +350,6 @@ public final class DashSword {
         );
 
         world.syncWorldEvent(
-                attacker,
                 WorldEvents.SMASH_ATTACK,
                 attacker.getBlockPos().down(),
                 750
@@ -480,7 +481,7 @@ public final class DashSword {
 
         SwordUtils.actionBar(
                 player,
-                Text.translatable(key, seconds),
+                SwordUtils.localizedMessage(player, key, seconds),
                 Formatting.RED
         );
     }
