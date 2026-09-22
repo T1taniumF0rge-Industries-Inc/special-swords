@@ -3,7 +3,7 @@
   "id": "specialswords",
   "version": "${version}",
   "name": "Special Swords",
-  "description": "Server-side custom sword abilities, Dash Sword mechanics, and restricted recipes.",
+  "description": "Server-side custom sword abilities, Dash Sword mechanics, cooldowns, and rename controls.",
   "authors": [
     "Titan1um"
   ],
