@@ -16,8 +16,10 @@ import net.minecraft.util.Formatting;
 import net.minecraft.world.World;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class LightningSword {
@@ -25,9 +27,12 @@ public final class LightningSword {
     private static final int PROC_PERCENT = 10;
     private static final int STRIKES = 10;
     private static final int STRIKE_INTERVAL_TICKS = 4;
+    private static final long COOLDOWN_MS = 30_000L;
     private static final int DURABILITY_COST = 10;
 
     private static final List<LightningTask> TASKS = new ArrayList<>();
+    private static final Map<UUID, Integer> STRIKE_COUNTS = new HashMap<>();
+    private static final Map<UUID, Long> COOLDOWNS = new HashMap<>();
 
     private LightningSword() {
     }
@@ -45,7 +50,19 @@ public final class LightningSword {
             return;
         }
 
+        long cooldown = remaining(COOLDOWNS, attacker.getUuid());
+
+        if (cooldown > 0L) {
+            SwordUtils.actionBar(
+                    attacker,
+                    Text.translatable("specialswords.lightning.cooldown", cooldownSeconds(cooldown)),
+                    Formatting.RED
+            );
+            return;
+        }
+
         TASKS.add(new LightningTask(
+                attacker.getUuid(),
                 target.getUuid(),
                 target.getEntityWorld().getRegistryKey()
         ));
@@ -102,7 +119,28 @@ public final class LightningSword {
                 world.spawnEntity(lightning);
             }
 
+            int strikes = STRIKE_COUNTS.merge(task.attacker, 1, Integer::sum);
             task.strikes++;
+
+            if (strikes >= STRIKES) {
+                COOLDOWNS.put(
+                        task.attacker,
+                        System.currentTimeMillis() + COOLDOWN_MS
+                );
+
+                ServerPlayerEntity attacker =
+                        server.getPlayerManager().getPlayer(task.attacker);
+
+                if (attacker != null) {
+                    SwordUtils.actionBar(
+                            attacker,
+                            Text.translatable("specialswords.lightning.max"),
+                            Formatting.GREEN
+                    );
+                }
+
+                STRIKE_COUNTS.remove(task.attacker);
+            }
 
             if (task.strikes >= STRIKES) {
                 iterator.remove();
@@ -112,14 +150,49 @@ public final class LightningSword {
         }
     }
 
+    public static void clearForPlayer(ServerPlayerEntity player) {
+        UUID uuid = player.getUuid();
+
+        TASKS.removeIf(task -> task.attacker.equals(uuid));
+        STRIKE_COUNTS.remove(uuid);
+        COOLDOWNS.remove(uuid);
+    }
+
+    private static long remaining(Map<UUID, Long> cooldowns, UUID uuid) {
+        Long endTime = cooldowns.get(uuid);
+
+        if (endTime == null) {
+            return 0L;
+        }
+
+        long remaining = endTime - System.currentTimeMillis();
+
+        if (remaining <= 0L) {
+            cooldowns.remove(uuid);
+            return 0L;
+        }
+
+        return remaining;
+    }
+
+    private static long cooldownSeconds(long remainingMillis) {
+        return Math.max(1L, (remainingMillis + 999L) / 1000L);
+    }
+
     private static final class LightningTask {
 
+        private final UUID attacker;
         private final UUID target;
         private final RegistryKey<World> worldKey;
         private int strikes;
         private int delayTicks;
 
-        private LightningTask(UUID target, RegistryKey<World> worldKey) {
+        private LightningTask(
+                UUID attacker,
+                UUID target,
+                RegistryKey<World> worldKey
+        ) {
+            this.attacker = attacker;
             this.target = target;
             this.worldKey = worldKey;
         }
