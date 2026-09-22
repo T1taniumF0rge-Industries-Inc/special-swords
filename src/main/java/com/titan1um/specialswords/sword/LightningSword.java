@@ -11,7 +11,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.World;
 
@@ -24,7 +23,7 @@ import java.util.UUID;
 
 public final class LightningSword {
 
-    private static final int PROC_PERCENT = 10;
+    private static final int PROC_PERCENT = 25;
     private static final int STRIKES = 10;
     private static final int STRIKE_INTERVAL_TICKS = 4;
     private static final long COOLDOWN_MS = 30_000L;
@@ -46,23 +45,33 @@ public final class LightningSword {
             LivingEntity target,
             ItemStack weapon
     ) {
+        UUID uuid = attacker.getUuid();
+
+        if (TASKS.stream().anyMatch(task -> task.attacker.equals(uuid))) {
+            return;
+        }
+
         if (!SwordUtils.rollPercent(attacker.getEntityWorld(), PROC_PERCENT)) {
             return;
         }
 
-        long cooldown = remaining(COOLDOWNS, attacker.getUuid());
+        long cooldown = remaining(COOLDOWNS, uuid);
 
         if (cooldown > 0L) {
             SwordUtils.actionBar(
                     attacker,
-                    Text.translatable("specialswords.lightning.cooldown", cooldownSeconds(cooldown)),
+                    SwordUtils.localizedMessage(
+                            attacker,
+                            "specialswords.lightning.cooldown",
+                            cooldownSeconds(cooldown)
+                    ),
                     Formatting.RED
             );
             return;
         }
 
         TASKS.add(new LightningTask(
-                attacker.getUuid(),
+                uuid,
                 target.getUuid(),
                 target.getEntityWorld().getRegistryKey()
         ));
@@ -75,7 +84,10 @@ public final class LightningSword {
 
         SwordUtils.actionBar(
                 attacker,
-                Text.translatable("specialswords.lightning.success"),
+                SwordUtils.localizedMessage(
+                        attacker,
+                        "specialswords.lightning.success"
+                ),
                 Formatting.GREEN
         );
     }
@@ -139,7 +151,10 @@ public final class LightningSword {
                 if (attacker != null) {
                     SwordUtils.actionBar(
                             attacker,
-                            Text.translatable("specialswords.lightning.max"),
+                            SwordUtils.localizedMessage(
+                                    attacker,
+                                    "specialswords.lightning.max"
+                            ),
                             Formatting.GREEN
                     );
                 }
