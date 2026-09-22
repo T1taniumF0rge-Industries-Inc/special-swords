@@ -5,6 +5,8 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -50,6 +52,7 @@ public final class DashSword {
 
     private static final Map<UUID, ForwardState> FORWARD_STATES = new HashMap<>();
     private static final Map<UUID, UpwardState> UPWARD_STATES = new HashMap<>();
+    private static final Map<UUID, StatusEffectInstance> SAVED_SPEED = new HashMap<>();
 
     private DashSword() {
     }
@@ -174,6 +177,7 @@ public final class DashSword {
     public static void tick(MinecraftServer server) {
         tickForwardDashes(server);
         tickUpwardDashes(server);
+        tickHeldSpeed(server);
     }
 
     public static boolean shouldCancelFallDamage(ServerPlayerEntity player) {
@@ -188,6 +192,49 @@ public final class DashSword {
         }
 
         return matches(player.getMainHandStack());
+    }
+
+    private static void tickHeldSpeed(MinecraftServer server) {
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            UUID uuid = player.getUuid();
+
+            if (matches(player.getMainHandStack())) {
+                if (!SAVED_SPEED.containsKey(uuid)) {
+                    SAVED_SPEED.put(uuid, player.getStatusEffect(StatusEffects.SPEED));
+                }
+
+                if (player.getStatusEffect(StatusEffects.SPEED) == null) {
+                    player.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.SPEED,
+                            40,
+                            0,
+                            false,
+                            false,
+                            false
+                    ));
+                }
+
+                continue;
+            }
+
+            StatusEffectInstance saved = SAVED_SPEED.remove(uuid);
+
+            if (saved == null) {
+                continue;
+            }
+
+            StatusEffectInstance current = player.getStatusEffect(StatusEffects.SPEED);
+
+            if (current != null
+                    && current.getAmplifier() == 0
+                    && current.getDuration() <= 40) {
+                player.removeStatusEffect(StatusEffects.SPEED);
+            }
+
+            if (saved.getDuration() > 0) {
+                player.addStatusEffect(saved);
+            }
+        }
     }
 
     private static void tickForwardDashes(MinecraftServer server) {
