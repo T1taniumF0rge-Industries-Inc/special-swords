@@ -4,23 +4,22 @@ import com.titan1um.specialswords.SwordUtils;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class LifestealSword {
 
-    private static final double PROC_CHANCE = 0.10D;
+    private static final int PROC_PERCENT = 10;
+    private static final int MAX_HEALTH_BOOST_AMPLIFIER = 4;
     private static final int HEALTH_BOOST_DURATION = 20 * 60;
     private static final int DURABILITY_COST = 10;
 
@@ -38,20 +37,23 @@ public final class LifestealSword {
             LivingEntity target,
             ItemStack weapon
     ) {
-        if (!(target instanceof PlayerEntity) && !(target instanceof HostileEntity)) {
-            return;
-        }
-
-        if (ThreadLocalRandom.current().nextDouble() >= PROC_CHANCE) {
+        if (!SwordUtils.rollPercent(attacker.getEntityWorld(), PROC_PERCENT)) {
             return;
         }
 
         StatusEffectInstance currentBoost =
                 attacker.getStatusEffect(StatusEffects.HEALTH_BOOST);
 
-        int amplifier = currentBoost == null
-                ? 0
-                : currentBoost.getAmplifier() + 1;
+        int currentAmplifier = currentBoost == null
+                ? -1
+                : currentBoost.getAmplifier();
+
+        boolean reachedMaximum = currentAmplifier < MAX_HEALTH_BOOST_AMPLIFIER;
+
+        int amplifier = Math.min(
+                currentAmplifier + 1,
+                MAX_HEALTH_BOOST_AMPLIFIER
+        );
 
         int heartsGranted = (amplifier + 1) * 2;
 
@@ -85,9 +87,20 @@ public final class LifestealSword {
 
         SwordUtils.actionBar(
                 attacker,
-                "Lifesteal! +" + heartsGranted + " hearts.",
+                Text.translatable(
+                        "specialswords.lifesteal.success",
+                        heartsGranted
+                ),
                 Formatting.GREEN
         );
+
+        if (reachedMaximum && amplifier == MAX_HEALTH_BOOST_AMPLIFIER) {
+            SwordUtils.actionBar(
+                    attacker,
+                    Text.translatable("specialswords.lifesteal.max"),
+                    Formatting.RED
+            );
+        }
     }
 
     public static void tick(MinecraftServer server) {
