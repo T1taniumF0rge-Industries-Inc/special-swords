@@ -39,11 +39,11 @@ public abstract class AnvilScreenHandlerMixin {
         String normalizedName =
                 SwordUtils.normalizeSpecialSwordName(customName.getString());
 
-        int cost = SpecialSwordsMod.getSpecialSwordRenameCost(normalizedName);
-
-        if (cost <= 0) {
+        if (normalizedName.isEmpty()) {
             return;
         }
+
+        int cost = SpecialSwordsMod.getSpecialSwordRenameCost(normalizedName);
 
         output.set(
                 DataComponentTypes.CUSTOM_NAME,
