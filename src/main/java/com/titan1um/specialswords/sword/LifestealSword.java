@@ -9,7 +9,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.HashMap;
@@ -19,7 +18,7 @@ import java.util.UUID;
 
 public final class LifestealSword {
 
-    private static final int PROC_PERCENT = 10;
+    private static final int PROC_PERCENT = 25;
     private static final int MAX_HEALTH_BOOST_AMPLIFIER = 4;
     private static final int HEALTH_BOOST_DURATION = 20 * 60;
     private static final int INFINITE_EFFECT_DURATION = -1;
@@ -51,7 +50,8 @@ public final class LifestealSword {
         if (cooldown > 0L) {
             SwordUtils.actionBar(
                     attacker,
-                    Text.translatable(
+                    SwordUtils.localizedMessage(
+                            attacker,
                             "specialswords.lifesteal.cooldown",
                             cooldownSeconds(cooldown)
                     ),
@@ -101,7 +101,8 @@ public final class LifestealSword {
 
         SwordUtils.actionBar(
                 attacker,
-                Text.translatable(
+                SwordUtils.localizedMessage(
+                        attacker,
                         "specialswords.lifesteal.success",
                         heartsGranted
                 ),
@@ -111,7 +112,10 @@ public final class LifestealSword {
         if (newLevel == MAX_HEALTH_BOOST_AMPLIFIER) {
             SwordUtils.actionBar(
                     attacker,
-                    Text.translatable("specialswords.lifesteal.max"),
+                    SwordUtils.localizedMessage(
+                            attacker,
+                            "specialswords.lifesteal.max"
+                    ),
                     Formatting.GREEN
             );
         }
