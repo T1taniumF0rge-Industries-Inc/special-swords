@@ -14,6 +14,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -81,7 +82,11 @@ public final class DashSword {
         long remaining = remaining(FORWARD_COOLDOWNS, player.getUuid());
 
         if (remaining > 0L) {
-            SwordUtils.cooldown(player, "Forward Dash", remaining);
+            sendCooldownMessage(
+                    player,
+                    "specialswords.forward_dash.cooldown",
+                    remaining
+            );
             return ActionResult.FAIL;
         }
 
@@ -109,7 +114,7 @@ public final class DashSword {
 
         SwordUtils.actionBar(
                 player,
-                "Forward Dash activated!",
+                Text.translatable("specialswords.forward_dash.success"),
                 Formatting.GREEN
         );
 
@@ -124,7 +129,11 @@ public final class DashSword {
         long remaining = remaining(UPWARD_COOLDOWNS, player.getUuid());
 
         if (remaining > 0L) {
-            SwordUtils.cooldown(player, "Upward Dash", remaining);
+            sendCooldownMessage(
+                    player,
+                    "specialswords.upward_dash.cooldown",
+                    remaining
+            );
             return ActionResult.FAIL;
         }
 
@@ -153,7 +162,7 @@ public final class DashSword {
 
         SwordUtils.actionBar(
                 player,
-                "Upward Dash activated!",
+                Text.translatable("specialswords.upward_dash.success"),
                 Formatting.GREEN
         );
 
@@ -163,19 +172,16 @@ public final class DashSword {
     }
 
     public static void tick(MinecraftServer server) {
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            if (isHolding(player)) {
-                player.fallDistance = 0.0F;
-            }
-        }
-
         tickForwardDashes(server);
         tickUpwardDashes(server);
     }
 
     public static boolean shouldCancelFallDamage(ServerPlayerEntity player) {
+        UUID uuid = player.getUuid();
+
         return isHolding(player)
-                || UPWARD_STATES.containsKey(player.getUuid());
+                || FORWARD_STATES.containsKey(uuid)
+                || UPWARD_STATES.containsKey(uuid);
     }
 
     private static boolean isHolding(ServerPlayerEntity player) {
@@ -408,6 +414,23 @@ public final class DashSword {
     private static void sendVelocity(ServerPlayerEntity player) {
         player.networkHandler.sendPacket(
                 new EntityVelocityUpdateS2CPacket(player)
+        );
+    }
+
+    private static void sendCooldownMessage(
+            ServerPlayerEntity player,
+            String translationKeyPrefix,
+            long remainingMillis
+    ) {
+        long seconds = Math.max(1L, (remainingMillis + 999L) / 1000L);
+        String key = seconds == 1L
+                ? translationKeyPrefix + ".single"
+                : translationKeyPrefix + ".plural";
+
+        SwordUtils.actionBar(
+                player,
+                Text.translatable(key, seconds),
+                Formatting.RED
         );
     }
 
