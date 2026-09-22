@@ -1,7 +1,10 @@
 {
   "specialswords.lightning.success": "Vous avez invoqué la foudre qui a frappé vos adversaires !",
+  "specialswords.lightning.max": "Vous venez de lancer votre 10e éclair. La foudre est maintenant en recharge.",
+  "specialswords.lightning.cooldown": "La foudre est en recharge ! Plus que %s secondes…",
   "specialswords.lifesteal.success": "Vol de vie utilisé et %s cœurs supplémentaires accordés !",
-  "specialswords.lifesteal.max": "Le vol de vie a atteint sa capacité maximale de 20 cœurs !",
+  "specialswords.lifesteal.max": "Le vol de vie a atteint sa capacité maximale de 10 cœurs supplémentaires ! Il sera en recharge lorsque vos cœurs supplémentaires auront disparu !",
+  "specialswords.lifesteal.cooldown": "Le vol de vie est en recharge ! Plus que %s secondes…",
   "specialswords.forward_dash.success": "Dash en avant utilisé ! En recharge.",
   "specialswords.upward_dash.success": "Dash vers le haut utilisé ! En recharge.",
   "specialswords.forward_dash.cooldown.single": "Le Dash en avant est en recharge ! Plus que %s seconde…",
