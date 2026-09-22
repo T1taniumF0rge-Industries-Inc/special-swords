@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,8 +22,11 @@ public final class LifestealSword {
     private static final int PROC_PERCENT = 10;
     private static final int MAX_HEALTH_BOOST_AMPLIFIER = 4;
     private static final int HEALTH_BOOST_DURATION = 20 * 60;
+    private static final long MAX_COOLDOWN_MS = 60_000L;
     private static final int DURABILITY_COST = 10;
 
+    private static final Map<UUID, Integer> LIFESTEAL_LEVELS = new HashMap<>();
+    private static final Map<UUID, Long> MAX_COOLDOWNS = new HashMap<>();
     private static final Map<UUID, StatusEffectInstance> SAVED_REGENERATION = new HashMap<>();
 
     private LifestealSword() {
@@ -41,26 +45,32 @@ public final class LifestealSword {
             return;
         }
 
-        StatusEffectInstance currentBoost =
-                attacker.getStatusEffect(StatusEffects.HEALTH_BOOST);
+        long cooldown = remaining(MAX_COOLDOWNS, attacker.getUuid());
 
-        int currentAmplifier = currentBoost == null
-                ? -1
-                : currentBoost.getAmplifier();
+        if (cooldown > 0L) {
+            SwordUtils.actionBar(
+                    attacker,
+                    Text.translatable("specialswords.lifesteal.cooldown", cooldownSeconds(cooldown)),
+                    Formatting.RED
+            );
+            return;
+        }
 
-        boolean reachedMaximum = currentAmplifier < MAX_HEALTH_BOOST_AMPLIFIER;
+        int currentLevel = getCurrentLevel(attacker);
 
-        int amplifier = Math.min(
-                currentAmplifier + 1,
-                MAX_HEALTH_BOOST_AMPLIFIER
-        );
+        if (currentLevel >= MAX_HEALTH_BOOST_AMPLIFIER) {
+            return;
+        }
 
-        int heartsGranted = (amplifier + 1) * 2;
+        int newLevel = currentLevel + 1;
+        int heartsGranted = newLevel * 2;
+
+        LIFESTEAL_LEVELS.put(attacker.getUuid(), newLevel);
 
         attacker.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.HEALTH_BOOST,
                 HEALTH_BOOST_DURATION,
-                amplifier,
+                newLevel - 1,
                 false,
                 false,
                 true
@@ -94,16 +104,51 @@ public final class LifestealSword {
                 Formatting.GREEN
         );
 
-        if (reachedMaximum && amplifier == MAX_HEALTH_BOOST_AMPLIFIER) {
+        if (newLevel == MAX_HEALTH_BOOST_AMPLIFIER) {
             SwordUtils.actionBar(
                     attacker,
                     Text.translatable("specialswords.lifesteal.max"),
-                    Formatting.RED
+                    Formatting.GREEN
             );
         }
     }
 
     public static void tick(MinecraftServer server) {
+        Iterator<Map.Entry<UUID, Integer>> iterator = LIFESTEAL_LEVELS.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            UUID uuid = entry.getKey();
+
+            ServerPlayerEntity player =
+                    server.getPlayerManager().getPlayer(uuid);
+
+            if (player == null) {
+                iterator.remove();
+                MAX_COOLDOWNS.remove(uuid);
+                SAVED_REGENERATION.remove(uuid);
+                continue;
+            }
+
+            int level = entry.getValue();
+
+            if (level >= MAX_HEALTH_BOOST_AMPLIFIER
+                    && player.getStatusEffect(StatusEffects.HEALTH_BOOST) == null
+                    && !MAX_COOLDOWNS.containsKey(uuid)) {
+                MAX_COOLDOWNS.put(
+                        uuid,
+                        System.currentTimeMillis() + MAX_COOLDOWN_MS
+                );
+            }
+
+            if (level >= MAX_HEALTH_BOOST_AMPLIFIER
+                    && MAX_COOLDOWNS.containsKey(uuid)
+                    && remaining(MAX_COOLDOWNS, uuid) == 0L) {
+                LIFESTEAL_LEVELS.remove(uuid);
+                iterator.remove();
+            }
+        }
+
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             boolean holding = matches(player.getMainHandStack());
 
@@ -146,5 +191,62 @@ public final class LifestealSword {
                 player.addStatusEffect(saved);
             }
         }
+    }
+
+    public static void clearForPlayer(ServerPlayerEntity player) {
+        UUID uuid = player.getUuid();
+
+        if (LIFESTEAL_LEVELS.remove(uuid) != null) {
+            StatusEffectInstance boost =
+                    player.getStatusEffect(StatusEffects.HEALTH_BOOST);
+
+            if (boost != null && boost.getAmplifier() <= MAX_HEALTH_BOOST_AMPLIFIER) {
+                player.removeStatusEffect(StatusEffects.HEALTH_BOOST);
+            }
+        }
+
+        MAX_COOLDOWNS.remove(uuid);
+        SAVED_REGENERATION.remove(uuid);
+    }
+
+    private static int getCurrentLevel(ServerPlayerEntity player) {
+        Integer trackedLevel = LIFESTEAL_LEVELS.get(player.getUuid());
+
+        if (trackedLevel != null) {
+            return trackedLevel;
+        }
+
+        StatusEffectInstance currentBoost =
+                player.getStatusEffect(StatusEffects.HEALTH_BOOST);
+
+        if (currentBoost == null) {
+            return 0;
+        }
+
+        return Math.min(
+                currentBoost.getAmplifier() + 1,
+                MAX_HEALTH_BOOST_AMPLIFIER
+        );
+    }
+
+    private static long remaining(Map<UUID, Long> cooldowns, UUID uuid) {
+        Long endTime = cooldowns.get(uuid);
+
+        if (endTime == null) {
+            return 0L;
+        }
+
+        long remaining = endTime - System.currentTimeMillis();
+
+        if (remaining <= 0L) {
+            cooldowns.remove(uuid);
+            return 0L;
+        }
+
+        return remaining;
+    }
+
+    private static long cooldownSeconds(long remainingMillis) {
+        return Math.max(1L, (remainingMillis + 999L) / 1000L);
     }
 }
