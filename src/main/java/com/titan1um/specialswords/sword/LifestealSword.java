@@ -22,6 +22,7 @@ public final class LifestealSword {
     private static final int PROC_PERCENT = 10;
     private static final int MAX_HEALTH_BOOST_AMPLIFIER = 4;
     private static final int HEALTH_BOOST_DURATION = 20 * 60;
+    private static final int INFINITE_EFFECT_DURATION = -1;
     private static final long MAX_COOLDOWN_MS = 60_000L;
     private static final int DURABILITY_COST = 10;
 
@@ -168,7 +169,7 @@ public final class LifestealSword {
                 if (player.getStatusEffect(StatusEffects.REGENERATION) == null) {
                     player.addStatusEffect(new StatusEffectInstance(
                             StatusEffects.REGENERATION,
-                            40,
+                            INFINITE_EFFECT_DURATION,
                             1,
                             false,
                             false,
