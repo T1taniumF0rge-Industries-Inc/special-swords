@@ -13,7 +13,7 @@ public class SpecialSwordsMod implements ModInitializer {
         return switch (SwordUtils.normalizeSpecialSwordName(name)) {
             case SwordUtils.LIGHTNING_SWORD -> 30;
             case SwordUtils.LIFESTEAL_SWORD, SwordUtils.DASH_SWORD -> 35;
-            default -> 0;
+            default -> 30;
         };
     }
 
