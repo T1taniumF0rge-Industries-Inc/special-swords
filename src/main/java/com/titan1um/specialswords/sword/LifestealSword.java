@@ -155,22 +155,27 @@ public final class LifestealSword {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             boolean holding = matches(player.getMainHandStack());
 
+            UUID uuid = player.getUuid();
+
             if (holding) {
-                if (!SAVED_REGENERATION.containsKey(player.getUuid())) {
+                if (!SAVED_REGENERATION.containsKey(uuid)) {
                     SAVED_REGENERATION.put(
-                            player.getUuid(),
+                            uuid,
                             player.getStatusEffect(StatusEffects.REGENERATION)
                     );
                 }
 
-                player.addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.REGENERATION,
-                        40,
-                        1,
-                        false,
-                        false,
-                        false
-                ));
+                if (player.getStatusEffect(StatusEffects.REGENERATION) == null) {
+                    player.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.REGENERATION,
+                            40,
+                            1,
+                            false,
+                            false,
+                            false
+                    ));
+                }
+
                 continue;
             }
 
