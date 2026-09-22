@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.minecraft.command.permission.Permission;
+import net.minecraft.command.permission.PermissionLevel;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
@@ -48,11 +50,18 @@ public final class SpecialSwordManager {
     ) {
         dispatcher.register(
                 CommandManager.literal("specialswords")
-                        .requires(source -> source.hasPermissionLevel(4))
+                        .requires(source ->
+                                source.getPermissions().hasPermission(
+                                        new Permission.Level(PermissionLevel.OWNERS)
+                                )
+                        )
                         .then(
                                 CommandManager.literal("enable")
                                         .executes(context -> {
                                             renamingEnabled = true;
+                                            SpecialSwordsMod.LOGGER.info(
+                                                    "[Special Swords] Sword renaming has been enabled."
+                                            );
                                             context.getSource().sendFeedback(
                                                     () -> Text.literal("Special Swords renaming is enabled.")
                                                             .formatted(Formatting.GREEN),
@@ -69,7 +78,7 @@ public final class SpecialSwordManager {
                                                     context.getSource().getServer()
                                             );
                                             SpecialSwordsMod.LOGGER.warn(
-                                                    "[Special Swords] Sword renaming is disabled!"
+                                                    "[Special Swords] Sword renaming has been disabled!"
                                             );
                                             context.getSource().sendFeedback(
                                                     () -> Text.literal(
