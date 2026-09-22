@@ -14,7 +14,7 @@ public class SpecialSwordsMod implements ModInitializer {
         try {
             SpecialSwordManager.register();
             LOGGER.info("[Special Swords] Mod loaded successfully.");
-        } catch (Throwable throwable) {
+        } catch (RuntimeException | Error throwable) {
             LOGGER.error("[Special Swords] Failed to load the mod.", throwable);
             throw throwable;
         }
