@@ -303,6 +303,10 @@ public final class DashSword {
         }
     }
 
+    private static boolean isHolding(ServerPlayerEntity player) {
+        return matches(player.getMainHandStack());
+    }
+
     private static void performMaceSmash(ServerPlayerEntity attacker) {
         ServerWorld world = attacker.getEntityWorld();
 
