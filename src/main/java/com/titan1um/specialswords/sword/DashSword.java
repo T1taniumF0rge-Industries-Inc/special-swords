@@ -32,6 +32,7 @@ import java.util.UUID;
 public final class DashSword {
 
     private static final long FORWARD_COOLDOWN_MS = 3_000L;
+    private static final int INFINITE_EFFECT_DURATION = -1;
     private static final long UPWARD_COOLDOWN_MS = 10_000L;
 
     private static final int FORWARD_DURABILITY = 5;
@@ -206,7 +207,7 @@ public final class DashSword {
                 if (player.getStatusEffect(StatusEffects.SPEED) == null) {
                     player.addStatusEffect(new StatusEffectInstance(
                             StatusEffects.SPEED,
-                            40,
+                            INFINITE_EFFECT_DURATION,
                             0,
                             false,
                             false,
