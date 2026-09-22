@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.command.permission.Permission;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.command.permission.PermissionLevel;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
@@ -191,7 +192,7 @@ public final class SpecialSwordManager {
                 if (SwordUtils.isSpecialSword(stack, SwordUtils.LIGHTNING_SWORD)
                         || SwordUtils.isSpecialSword(stack, SwordUtils.LIFESTEAL_SWORD)
                         || SwordUtils.isSpecialSword(stack, SwordUtils.DASH_SWORD)) {
-                    stack.removeCustomName();
+                    stack.remove(DataComponentTypes.CUSTOM_NAME);
                     cleared = true;
                 }
             }
