@@ -18,8 +18,8 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 
 public final class SpecialSwordManager {
@@ -50,39 +50,63 @@ public final class SpecialSwordManager {
                 CommandManager.literal("specialswords")
                         .requires(source -> source.hasPermissionLevel(4))
                         .then(
-                                CommandManager.literal("rename")
-                                        .then(
-                                                CommandManager.literal("enable")
-                                                        .executes(context -> {
-                                                            renamingEnabled = true;
-                                                            context.getSource().sendFeedback(
-                                                                    () -> Text.literal("Special Swords renaming is enabled.")
-                                                                            .formatted(Formatting.GREEN),
-                                                                    true
-                                                            );
-                                                            return 1;
-                                                        })
-                                        )
-                                        .then(
-                                                CommandManager.literal("disable")
-                                                        .executes(context -> {
-                                                            renamingEnabled = false;
-                                                            clearAllActiveSpecialSwordNames(
-                                                                    context.getSource().getServer()
-                                                            );
-                                                            SpecialSwordsMod.LOGGER.warn(
-                                                                    "[Special Swords] Sword renaming is disabled!"
-                                                            );
-                                                            context.getSource().sendFeedback(
-                                                                    () -> Text.literal(
-                                                                            "Special Swords renaming is disabled. Existing special swords have lost their abilities."
-                                                                    ).formatted(Formatting.RED),
-                                                                    true
-                                                            );
-                                                            return 1;
-                                                        })
-                                        )
+                                CommandManager.literal("enable")
+                                        .executes(context -> {
+                                            renamingEnabled = true;
+                                            context.getSource().sendFeedback(
+                                                    () -> Text.literal("Special Swords renaming is enabled.")
+                                                            .formatted(Formatting.GREEN),
+                                                    true
+                                            );
+                                            return 1;
+                                        })
                         )
+                        .then(
+                                CommandManager.literal("disable")
+                                        .executes(context -> {
+                                            renamingEnabled = false;
+                                            clearAllActiveSpecialSwordNames(
+                                                    context.getSource().getServer()
+                                            );
+                                            SpecialSwordsMod.LOGGER.warn(
+                                                    "[Special Swords] Sword renaming is disabled!"
+                                            );
+                                            context.getSource().sendFeedback(
+                                                    () -> Text.literal(
+                                                            "Special Swords renaming is disabled. Existing special swords have lost their abilities."
+                                                    ).formatted(Formatting.RED),
+                                                    true
+                                            );
+                                            return 1;
+                                        })
+                        )
+                        .then(
+                                CommandManager.literal("list")
+                                        .executes(context -> {
+                                            sendSwordList(context.getSource());
+                                            return 1;
+                                        })
+                        )
+        );
+    }
+
+    private static void sendSwordList(ServerCommandSource source) {
+        source.sendFeedback(
+                () -> Text.literal("Special Swords:").formatted(Formatting.GOLD),
+                false
+        );
+
+        source.sendFeedback(
+                () -> SwordUtils.decoratedName(SwordUtils.LIGHTNING_SWORD),
+                false
+        );
+        source.sendFeedback(
+                () -> SwordUtils.decoratedName(SwordUtils.LIFESTEAL_SWORD),
+                false
+        );
+        source.sendFeedback(
+                () -> SwordUtils.decoratedName(SwordUtils.DASH_SWORD),
+                false
         );
     }
 
