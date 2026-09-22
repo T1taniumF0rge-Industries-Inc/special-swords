@@ -179,12 +179,14 @@ public final class DashSword {
     public static boolean shouldCancelFallDamage(ServerPlayerEntity player) {
         UUID uuid = player.getUuid();
 
-        return isHolding(player)
-                || FORWARD_STATES.containsKey(uuid)
-                || UPWARD_STATES.containsKey(uuid);
-    }
+        if (FORWARD_STATES.containsKey(uuid)) {
+            return true;
+        }
 
-    private static boolean isHolding(ServerPlayerEntity player) {
+        if (UPWARD_STATES.containsKey(uuid)) {
+            return true;
+        }
+
         return matches(player.getMainHandStack());
     }
 
@@ -233,7 +235,6 @@ public final class DashSword {
             }
 
             UpwardState state = entry.getValue();
-            player.fallDistance = 0.0F;
 
             if (player.getVelocity().y < -0.05D) {
                 state.startedFalling = true;
@@ -244,13 +245,11 @@ public final class DashSword {
                     performMaceSmash(player);
                 }
 
-                player.fallDistance = 0.0F;
                 iterator.remove();
                 continue;
             }
 
             if (++state.ticksElapsed > 600) {
-                player.fallDistance = 0.0F;
                 iterator.remove();
             }
         }
