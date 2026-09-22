@@ -1,14 +1,11 @@
 {
   "specialswords.lightning.success": "You have summoned lightning that struck your opponents!",
-
   "specialswords.lifesteal.success": "Lifesteal has been used and granted you %s extra hearts!",
-
+  "specialswords.lifesteal.max": "Lifesteal has reached its maximum capacity of 20 hearts!",
   "specialswords.forward_dash.success": "Forward Dash has been used! On cooldown.",
   "specialswords.upward_dash.success": "Upward Dash has been used! On cooldown.",
-
   "specialswords.forward_dash.cooldown.single": "Forward Dash is on cooldown! %s second remaining…",
   "specialswords.forward_dash.cooldown.plural": "Forward Dash is on cooldown! %s seconds remaining…",
-
   "specialswords.upward_dash.cooldown.single": "Upward Dash is on cooldown! %s second remaining…",
   "specialswords.upward_dash.cooldown.plural": "Upward Dash is on cooldown! %s seconds remaining…"
 }
