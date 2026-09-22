@@ -6,13 +6,12 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.World;
 
@@ -20,11 +19,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class LightningSword {
 
-    private static final double PROC_CHANCE = 0.10D;
+    private static final int PROC_PERCENT = 10;
     private static final int STRIKES = 10;
     private static final int STRIKE_INTERVAL_TICKS = 4;
     private static final int DURABILITY_COST = 10;
@@ -43,11 +41,7 @@ public final class LightningSword {
             LivingEntity target,
             ItemStack weapon
     ) {
-        if (!(target instanceof PlayerEntity) && !(target instanceof HostileEntity)) {
-            return;
-        }
-
-        if (ThreadLocalRandom.current().nextDouble() >= PROC_CHANCE) {
+        if (!SwordUtils.rollPercent(attacker.getEntityWorld(), PROC_PERCENT)) {
             return;
         }
 
@@ -64,7 +58,7 @@ public final class LightningSword {
 
         SwordUtils.actionBar(
                 attacker,
-                "Lightning Sword activated!",
+                Text.translatable("specialswords.lightning.success"),
                 Formatting.GREEN
         );
     }
@@ -89,10 +83,7 @@ public final class LightningSword {
 
             Entity entity = world.getEntity(task.target);
 
-            if (!(entity instanceof LivingEntity target)
-                    || !target.isAlive()
-                    || (!(target instanceof PlayerEntity)
-                    && !(target instanceof HostileEntity))) {
+            if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
                 iterator.remove();
                 continue;
             }
