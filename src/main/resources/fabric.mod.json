@@ -3,10 +3,11 @@
   "id": "specialswords",
   "version": "${version}",
   "name": "Special Swords",
-  "description": "Server-side custom sword abilities, Dash Sword mechanics, cooldowns, and rename controls.",
+  "description": "Adds unique netherite swords with powerful abilities to Minecraft!",
   "authors": [
     "Titan1um"
   ],
+  "icon": "icon.png",
   "environment": "server",
   "entrypoints": {
     "main": [
