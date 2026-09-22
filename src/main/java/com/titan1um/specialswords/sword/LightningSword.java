@@ -86,6 +86,11 @@ public final class LightningSword {
         while (iterator.hasNext()) {
             LightningTask task = iterator.next();
 
+            if (remaining(COOLDOWNS, task.attacker) > 0L) {
+                iterator.remove();
+                continue;
+            }
+
             if (task.delayTicks > 0) {
                 task.delayTicks--;
                 continue;
