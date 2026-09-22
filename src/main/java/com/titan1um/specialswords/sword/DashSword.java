@@ -30,7 +30,6 @@ public final class DashSword {
 
     private static final long FORWARD_COOLDOWN_MS = 3_000L;
     private static final long UPWARD_COOLDOWN_MS = 10_000L;
-    private static final long MACE_COOLDOWN_MS = 30_000L;
 
     private static final int FORWARD_DURABILITY = 5;
     private static final int UPWARD_DURABILITY = 10;
@@ -43,10 +42,10 @@ public final class DashSword {
 
     private static final double WIND_RADIUS = 8.0D;
     private static final double LANDING_RADIUS = 5.0D;
+    private static final double LANDING_VERTICAL_RADIUS = 5.0D;
 
     private static final Map<UUID, Long> FORWARD_COOLDOWNS = new HashMap<>();
     private static final Map<UUID, Long> UPWARD_COOLDOWNS = new HashMap<>();
-    private static final Map<UUID, Long> MACE_COOLDOWNS = new HashMap<>();
 
     private static final Map<UUID, ForwardState> FORWARD_STATES = new HashMap<>();
     private static final Map<UUID, UpwardState> UPWARD_STATES = new HashMap<>();
@@ -235,14 +234,8 @@ public final class DashSword {
             }
 
             if (state.startedFalling && player.isOnGround()) {
-                if (isHolding(player)
-                        && remaining(MACE_COOLDOWNS, player.getUuid()) == 0L) {
+                if (isHolding(player)) {
                     performMaceSmash(player);
-
-                    MACE_COOLDOWNS.put(
-                            player.getUuid(),
-                            System.currentTimeMillis() + MACE_COOLDOWN_MS
-                    );
                 }
 
                 player.fallDistance = 0.0F;
@@ -262,12 +255,21 @@ public final class DashSword {
 
         List<LivingEntity> targets = world.getEntitiesByClass(
                 LivingEntity.class,
-                attacker.getBoundingBox().expand(LANDING_RADIUS),
+                attacker.getBoundingBox().expand(
+                        LANDING_RADIUS,
+                        LANDING_VERTICAL_RADIUS,
+                        LANDING_RADIUS
+                ),
                 target -> target != attacker
                         && target.isAlive()
-                        && target.squaredDistanceTo(attacker)
+                        && Math.abs(target.getY() - attacker.getY()) <= LANDING_VERTICAL_RADIUS
+                        && target.getEntityPos().subtract(attacker.getEntityPos()).horizontalLengthSquared()
                         <= LANDING_RADIUS * LANDING_RADIUS
         );
+
+        if (targets.isEmpty()) {
+            return;
+        }
 
         var damageSource = world.getDamageSources().maceSmash(attacker);
 
@@ -291,7 +293,7 @@ public final class DashSword {
         world.syncWorldEvent(
                 attacker,
                 WorldEvents.SMASH_ATTACK,
-                attacker.getBlockPos(),
+                attacker.getBlockPos().down(),
                 750
         );
 
